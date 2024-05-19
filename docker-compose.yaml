@@ -1,0 +1,45 @@
+services:
+  worklog_mongodb:
+    image: mongo:4.4.29-focal
+    restart: on-failure
+    ports:
+      - 27017:27017
+    environment:
+      MONGO_HOST: localhost
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: mypassw0rd
+    volumes:
+      - worklog_mongodb_data:/data/db
+
+  worklog_api:
+    build: https://github.com/sungmincs/worklog-backend_v1.git
+    environment:
+      # This information shows up in /health endpoint
+      IMAGE_TAG: v0.0.1-local
+      # override the URI from localhost -> docker compose service name
+      MONGO_HOST: worklog_mongodb
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: mypassw0rd
+    restart: on-failure
+    ports:
+      - 8000:80
+    depends_on:
+      - worklog_mongodb
+
+  worklog_fe:
+    # Build frontend image directly from the frontend repository
+    build:
+      context: .
+    environment:
+      VITE_API_URL: "http://worklog_api:80"
+    restart: on-failure
+    ports:
+      - 8080:5173
+    volumes:
+      - ./src:/app/src:ro
+    depends_on:
+      - worklog_api
+
+volumes:
+  worklog_mongodb_data:
+
